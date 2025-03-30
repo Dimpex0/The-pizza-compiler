@@ -23,7 +23,7 @@ api.interceptors.response.use(
                 return api(originalRequest)
             })
             .catch(() => {
-                console.log("Token refresh failed. Logging out user.")
+                console.log("Token refresh failed. Login required.")
                 window.location.href = '/login'
             })
     }
