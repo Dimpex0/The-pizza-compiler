@@ -1,8 +1,13 @@
 import axios from "axios";
 
+export const regularApi = axios.create({
+    baseURL: import.meta.env.VITE_SERVER_URL,
+    withCredentials: true,
+})
+
 export const api = axios.create({
     baseURL: import.meta.env.VITE_SERVER_URL,
-    withCredentials: true
+    withCredentials: true,
 })
 
 api.interceptors.response.use(

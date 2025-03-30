@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import UserLoginSerializer
+from .serializers import UserLoginSerializer, TokenRefreshSerializer
+from .utils import setCookies
 
 
 class LoginView(APIView):
@@ -22,24 +23,8 @@ class LoginView(APIView):
             user = serializer.validated_data
             refresh = RefreshToken.for_user(user)
 
-            access_expiry = datetime.now() + settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']
-            refresh_expiry = datetime.now() + settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
-            response.set_cookie(
-                key=settings.SIMPLE_JWT['ACCESS_TOKEN'],
-                value=str(refresh.access_token),
-                expires=access_expiry,
-                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
-                httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
-                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
-            )
-            response.set_cookie(
-                key=settings.SIMPLE_JWT['REFRESH_TOKEN'],
-                value=str(refresh),
-                expires=refresh_expiry,
-                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
-                httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
-                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
-            )
+            setCookies(response, refresh.access_token, refresh)
+
             response.data = {'is_admin': user.is_superuser}
             return response
 
@@ -54,8 +39,17 @@ class TokenRefreshView(APIView):
     authentication_classes = []
 
     def post(self, request):
-        print(request.data)
-        return Response({'message': 'hi'}, status=status.HTTP_201_CREATED)
+        serializer = TokenRefreshSerializer(data=request.data, context={"request": request})
+        response = Response()
+        if serializer.is_valid():
+            new_access_token = serializer.validated_data.get('new_access_token')
+            new_refresh_token = serializer.validated_data.get('new_refresh_token')
+            setCookies(response, new_access_token, new_refresh_token)
+            response.status_code = status.HTTP_200_OK
+            return response
+        else:
+            return Response({"message": "Couldn't refresh access token. Login required."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
 class HomeView(APIView):
     permission_classes = [IsAuthenticated]
