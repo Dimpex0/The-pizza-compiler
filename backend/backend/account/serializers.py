@@ -2,8 +2,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model, authenticate
 from rest_framework.fields import CharField
 from rest_framework.exceptions import ValidationError
-from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.serializers import ModelSerializer, Serializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -19,6 +17,10 @@ class UserLoginSerializer(Serializer):
     password = CharField(write_only=True, style={'input_type': 'password'})
 
     # TODO: run field validations and raise custom errors
+    def validate_email(self, value):
+        if not UserModel.objects.filter(email=value).exists():
+            raise ValidationError("User with this email does not exist.")
+
 
     def validate(self, data):
         user = authenticate(**data)
@@ -28,6 +30,22 @@ class UserLoginSerializer(Serializer):
             raise ValidationError('Account not active.')
         else:
             raise ValidationError('Incorrect credentials.')
+
+class UserRegisterSerializer(Serializer):
+    email = CharField()
+    password = CharField(write_only=True, style={'input_type': 'password'})
+
+    def validate_email(self, value):
+        if UserModel.objects.filter(email=value).exists():
+            raise ValidationError("A user with this email already exists.")
+        return value
+
+    def validate(self, data):
+        user = UserModel.objects.create_user(**data)
+        if user:
+            return user
+        return ValidationError("Invalid data")
+
 
 class TokenRefreshSerializer(Serializer):
     def validate(self, data):
@@ -41,5 +59,3 @@ class TokenRefreshSerializer(Serializer):
             except Exception:
                 pass
         raise ValidationError("Error refreshing access token. Login required.")
-
-# Response({'error': "Couldn't refresh access token. Login required."}, status=status.HTTP_400_BAD_REQUEST)

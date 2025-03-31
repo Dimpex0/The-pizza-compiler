@@ -10,7 +10,7 @@ class CustomUserManager(BaseUserManager):
         Create and save a user with the given email, and password.
         """
         if not email:
-            raise ValueError("The given e_mail must be set")
+            raise ValueError("The given email must be set")
         email = self.normalize_email(email)
         # Lookup the real model class from the global app registry so this
         # manager method can be used in migrations. This is fine because

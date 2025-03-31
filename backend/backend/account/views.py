@@ -1,14 +1,10 @@
-from datetime import datetime
-
-from django.conf import settings
-
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import UserLoginSerializer, TokenRefreshSerializer
+from .serializers import UserLoginSerializer, TokenRefreshSerializer, UserRegisterSerializer
 from .utils import setCookies
 
 
@@ -34,6 +30,25 @@ class LoginView(APIView):
 
         return Response({"message": error_messages[0]}, status=status.HTTP_400_BAD_REQUEST)
 
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = UserRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+
+            # TODO: Send an activation link
+
+            return Response({'message': "Account created successfully. We've sent an activation link to your email."},
+                            status=status.HTTP_201_CREATED)
+
+        error_messages = []
+        for field, errors in serializer.errors.items():
+            error_messages.extend(errors)
+
+        return Response({"message": error_messages[0]}, status=status.HTTP_400_BAD_REQUEST)
+
 class TokenRefreshView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -50,9 +65,3 @@ class TokenRefreshView(APIView):
         else:
             return Response({"message": "Couldn't refresh access token. Login required."},
                             status=status.HTTP_400_BAD_REQUEST)
-
-class HomeView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response({"message": "Hi"}, status=status.HTTP_200_OK)
